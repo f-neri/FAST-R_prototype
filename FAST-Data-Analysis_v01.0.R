@@ -3,21 +3,20 @@
 
 # install the following packages:
 #> install.packages("tidyverse")
+#> install.packages("readxl")
 #> install.packages("stringi")
 #> install.packages("plater")
 #> install.packages("R.utils")
 #> install.packages("beepr")
 #> install.packages("openxlsx", dependencies=TRUE)
 #> install.packages("scales")
+#> install.packages("rgl")
 
 # copy the file name of the Image Analyst output file and paste it below
-Image_Analyst_output_file_name <- "ABT263_2023-0329_no9uM"
+Image_Analyst_output_file_name <- "ABT263_2023-0508"
 
 # copy the file name of the Image Analyst output file and paste it below
-plate_template_name <- "plate-template_ABT263_no9uM"
-
-# indicate what morphological parameter was measured
-morphological_parameter <- "Nuclear_Area"
+plate_template_name <- "plate-template_ABT263"
 
 # Indicate label number for DAPI, EdU, and SA-B-Gal;
 ## Note: the default label #s below should be correct if you followed the image analysis protocol correctly
@@ -33,14 +32,14 @@ SABGal_threshold_percentile <- 0.95
 
 # optional: assess cell viability and senescence marker changes after a treatment?
 assess_cell_viability_and_senescence_markers_changes <- TRUE
-cell_viability_variable <- "ABT263 (µM)" # must be perfect match to variable name entered in plate template
+cell_viability_variable <- "ABT263" # must be perfect match to variable name entered in plate template
 
 # conditions colors for graphs
 RColorBrewer_palette <- "Dark2" ## select palette from RColorBrewer (see https://r-graph-gallery.com/38-rcolorbrewers-palettes.html)
 invert_colors <- FALSE ## invert colors order?
 
 # graphs resolution in dpi (low res for web: 72; medium res for presentation: 150; high res for printing: 300; extra high res: 600)
-resolution_dpi <- 600 # the higher, the slower at generating graphs
+resolution_dpi <- 150 # the higher, the slower at generating graphs
 
 # character sizes
 size_legend_title <- 16
@@ -177,6 +176,27 @@ if (any(colnames(plate_metadata) %in% "condition") == TRUE) {} else {
   "The metadata entered in plate-template must contain the \"Condition\" variable"
 )}
 
+is_alphanumeric <- function(input_string) {
+  # The regular expression checks for alphanumeric characters.
+  # "^" at the start and "$" at the end ensure the whole string must match, not just part.
+  if (grepl("^[a-zA-Z0-9]+$", input_string)) {TRUE} else {FALSE}
+}
+
+variables_alphanumeric <- vector("character", 3)
+
+for (i in seq_along(colnames(plate_metadata))) {
+  variables_alphanumeric[[i]] <- is_alphanumeric(colnames(plate_metadata)[[i]])
+}
+
+if (any(variables_alphanumeric == FALSE)) {
+  beep(1)
+  Sys.sleep(2)
+  stop(
+    "The metadata entered in plate-template is not acceptable.
+
+variable names must be alphanumeric (only a-z letters and 0-9 digits are allowed)")
+}
+
 ## check that the variables contained in plate-template are limited to
 ## condition, and up to 2 additional variable (e.g. serum and/or drug treatment)
 additional_variables <- colnames(plate_metadata) %>%
@@ -208,7 +228,7 @@ tidy_data6 <- tidy_data5 %>%
 # changing the column names based on the strings entered at the beginning of script (READ ME section)
 
 ## changing current variable/column names to the ones inputted in the READ ME section
-colnames(tidy_data6)[str_detect(colnames(tidy_data6), "Plot of Each")] <- morphological_parameter
+colnames(tidy_data6)[str_detect(colnames(tidy_data6), "Plot of Each")] <- "Nuclear_Area"
 
 latest_value <- colnames(tidy_data6)
 
@@ -233,6 +253,9 @@ colnames(tidy_data6) <- latest_value
 
 ## input df
 df <- tidy_data6
+
+additional_variable_1 <- 0
+additional_variable_2 <- 0
 
 ## checking for additional variables; if present, renaming corresponding variables entered in plate-template
 if (additional_variables_check == TRUE) {
@@ -906,7 +929,7 @@ default_png()# saves the plot above to PNG
 
 ## adding color column
 
-plot3D_colors <- tibble("colors" = RColorBrewer::brewer.pal(length(unique(df_summary_signal$condition)), "Dark2"),
+plot3D_colors <- tibble("colors" = RColorBrewer::brewer.pal(length(unique(df_summary_signal$condition)), RColorBrewer_palette),
                         "condition" = sort(unique(df_summary_signal$condition)))
 
 df_summary_signal_no_background <- left_join(df_summary_signal_no_background, plot3D_colors)
@@ -939,7 +962,7 @@ for (i in seq_along(limits_list)) {
 
 ## 3D plot function
 
-plot_3D_median_signal <- function(data) { ## working
+plot_3D_median_signal <- function(data, graph_name) { ## working
   open3d() ## this is needed to open up a new rgl widget with each function run; otherwise, new runs will add points to previous plots
   plot3d(x = data$SABGal_Median,
          y = data$EdU_Median,
@@ -968,6 +991,7 @@ plot_3D_median_signal <- function(data) { ## working
   )
 
   title3d(
+    main = graph_name,
     xlab = "Integrated SA-B-Gal OD",
     ylab = "Integrated EdU intensity (AU)",
     zlab = "Median Nuclear Area (px^2)"
@@ -988,7 +1012,7 @@ plot_3D_median_signal <- function(data) { ## working
 ## generate and save 3D graph function
 
 generate_3D_graphs <- function(data, graph_name) {
-  plot_3D_median_signal(data)
+  plot_3D_median_signal(data, graph_name)
 
   file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_", graph_name, sep = "") # gets string with full path and file name for plot
 
@@ -1008,7 +1032,7 @@ generate_3D_graphs(df_summary_signal_no_background, "median-signal_SABGal-EdU-Nu
 
 ## graphs 3D filtered for unique combinations of additional_variables
 
-if(additional_variables_check == TRUE) {
+if(length(additional_variables) > 0) {
 
   if(length(additional_variables) == 1) {
     filtering_vec <- df_summary_signal_no_background$additional_variable_1 %>% unique()
@@ -1095,7 +1119,6 @@ input_parameters <- tibble(
   parameters = c("data_analysis_script_file_name",
                  "Image_Analyst_output_file_name",
                  "plate_template_name",
-                 "morphological_parameter",
                  "DAPI_label_number",
                  "EdU_label_number",
                  "SABGal_label_number",
@@ -1114,7 +1137,6 @@ input_parameters <- tibble(
   input_values = c(data_analysis_script_file_name,
                    Image_Analyst_output_file_name,
                    plate_template_name,
-                   morphological_parameter,
                    DAPI_label_number,
                    EdU_label_number,
                    SABGal_label_number,
@@ -1159,7 +1181,7 @@ if (assess_cell_viability_and_senescence_markers_changes == FALSE) {
       "No additional variable found for cell viability assessment
 
       Cell viability assessment can only be performed if the
-      additional variable correspodning to the treatment is
+      additional variable correspodning to a treatment is
       entered in the plate-template.csv file"
     )
   }
@@ -1490,7 +1512,7 @@ if (assess_cell_viability_and_senescence_markers_changes == FALSE) {
 
   ## 3D plot function
 
-  plot_3D_median_signal_changes <- function(data) { ## working
+  plot_3D_median_signal_changes <- function(data, graph_name) { ## working
     open3d() ## this is needed to open up a new rgl widget with each function run; otherwise, new runs will add points to previous plots
     plot3d(x = data$SABGal_median_signal,
            y = data$EdU_median_signal,
@@ -1519,6 +1541,7 @@ if (assess_cell_viability_and_senescence_markers_changes == FALSE) {
     )
 
     title3d(
+      main = graph_name,
       xlab = "Integrated SA-B-Gal OD",
       ylab = "Integrated EdU intensity (AU)",
       zlab = "Median Nuclear Area (px^2)"
@@ -1540,7 +1563,7 @@ if (assess_cell_viability_and_senescence_markers_changes == FALSE) {
   # generate 3D graphs function
 
   generate_3D_graphs_changes <- function(data, graph_name) {
-    plot_3D_median_signal_changes(data)
+    plot_3D_median_signal_changes(data, graph_name)
 
     file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_", graph_name, sep = "") # gets string with full path and file name for plot
 
@@ -1557,48 +1580,47 @@ if (assess_cell_viability_and_senescence_markers_changes == FALSE) {
   ## graphs 3D filtered for unique conditions (+ other additional variable if present)
 
   if(length(facet_grid_cols) == 0) { # filtering for condition
-
+    
     filtering_vec <- summary_table_signal$condition %>% unique()
-
+    
     df_names <- str_c("median-signal_SABGal-EdU-NuclearArea_changes-", treatment_variable,"_", filtering_vec, ".html") # names of graph files
-
+    
     df_list <- vector("list", length = length(filtering_vec)) # filtered dfs
-
+    
     for (i in seq_along(filtering_vec)) {
       df_list[[i]] <- filter(summary_table_signal, condition == filtering_vec[[i]])
     }
-
+    
     parameters <- tibble(filtered_df = df_list, name = df_names)
-
+    
     for (i in seq_len(nrow(parameters))) { # generate graphs
       generate_3D_graphs_changes(parameters$filtered_df[[i]], parameters$name[[i]])
     }
-
+    
   } else { # filtering for condition + other additional variable
-
+    
     filtering_vec_1 <- summary_table_signal$condition %>% unique()
     filtering_vec_2 <- summary_table_signal[[facet_grid_cols]] %>% unique()
-
+    
     filtering_vec <- expand_grid(condition = filtering_vec_1,
                                  facet_grid_cols = filtering_vec_2)  # all possible combination of conditino and other additional variable
-
+    
     df_names <- str_c("median-signal_SABGal-EdU-NuclearArea_changes-", treatment_variable,"_", filtering_vec[[1]], "_", facet_grid_cols, "-", filtering_vec[[2]], ".html")
-
+    
     df_list <- vector("list", length = nrow(filtering_vec))
-
+    
     for (i in seq_len(nrow(filtering_vec))) {
       df_list[[i]] <- filter(summary_table_signal, condition == filtering_vec[[1]][[i]] & facet_grid_cols == filtering_vec[[2]][[i]])
     }
-
+    
     parameters <- tibble(filtered_df = df_list, name = df_names)
-
+    
     for (i in seq_len(nrow(parameters))) {
       generate_3D_graphs_changes(parameters$filtered_df[[i]], parameters$name[[i]])
     }
-
+    
   }
-
-
+  
   # graphs scatterplot changes percentages ---------------------------------
 
   # ggplot function
