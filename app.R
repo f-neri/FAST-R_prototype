@@ -14,18 +14,6 @@ library(scales)
 library(rgl)
 library(htmlwidgets)
 
-# Functions ---------------------------------------------------------------
-
-show_analysis_progress <<- function(file_name_generated = "") {
-  percentage_progress <<- percentage_progress + 1/34*100 
-  incProgress(1,
-              detail = str_c("Progress: ", round(percentage_progress, digits = 0), "%\n
-                                   Generating ",file_name_generated))
-}
-
-
-
-
 # START: UI ---------------------------------------------------------------
 
 ui <- fluidPage(
@@ -49,15 +37,18 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      h1(strong("Input")),
+      h1(strong("Analysis Inputs")),
       br(),
       br(),
-      h3(em("Inpute files")),
+      downloadButton("download", label = "Download plate-metadata.csv"),
+      br(),
+      br(),
+      h3(em("Input files")),
       br(),
       fileInput("Image_Analyst_output_file_name", label = "Image Analyst output file", accept = ".xlsx"),
       fileInput("plate_template_name", label = "Plate metadata file",  accept = ".csv"),
       br(),
-      h3(em("Additional Parameters")),
+      h3(em("Staining Labels")),
       br(),
       selectInput("DAPI_label_number", label = "DAPI label #",
                   choices = c(1, 2, 3),
@@ -71,18 +62,12 @@ ui <- fluidPage(
       helpText("Note: the default label # values for DAPI, EdU, and SA-β-Gal should be correct if you followed the
                image analysis protocol correctly"),
       br(),
-      numericInput("EdU_threshold_percentile", label = "Percentile EdU treshold", value = 0.95),
-      numericInput("SABGal_threshold_percentile", label = "Percentile SA-β-Gal treshold", value = 0.95),
-      helpText("Indicate the percentile values to use (0-1) to automatically calculate the positivity thresholds for
+      h3(em("Positive Staining Thresholds")),
+      br(),
+      numericInput("EdU_threshold_percentile", label = "Percentile EdU threshold", value = 0.95),
+      numericInput("SABGal_threshold_percentile", label = "Percentile SA-β-Gal threshold", value = 0.95),
+      helpText("Indicate the percentile values to use (0-1) to automatically calculate the positive staining thresholds for
                EdU and SA-β-Gal staining (based on background staining)"),
-      br(),
-      h3(em("Optional Analysis")),
-      br(),
-      checkboxInput("assess_cell_viability_and_senescence_markers_changes", label = "Assess cell viability and 
-                    senescence marker changes based on a treatment? (Optional)"),
-      textInput("cell_viability_variable", label = "Treatment variable"),
-      helpText("Note: the treatment variable entered must be a perfect match to one of the variable names entered
-               in the plate metadata file"),
       br(),
       h3(em("Output Graphs Settings")),
       br(),
@@ -100,37 +85,49 @@ ui <- fluidPage(
       numericInput("size_axis_text", label = "Axis text", value = 12),
       numericInput("size_facets_text", label = "Facet text", value = 14),
       br(),
+      br(),
+      h3(em("Optional Analysis")),
+      br(),
+      checkboxInput("assess_cell_viability_and_senescence_markers_changes", label = "Assess cell viability and 
+                    senescence marker changes based on a treatment? (Optional)"),
+      textInput("cell_viability_variable", label = "Treatment variable"),
+      helpText("Note: the treatment variable entered must be a perfect match to one of the variable names entered
+               in the plate metadata file"),
+      br(),
+      br(),
       h3(em("Save Analysis")),
       directoryInput('directory', label = 'select a folder to save files in'),
+      br(),
       h3(em("Run Analysis")),
       br(),
       actionButton("run_button", label = "Run"),
-      helpText("Note: the app won't run unless you've selected 1) Image Analyst output file name,
-               2) Plate metadata file name, and
-               3) a saving folder")
+      helpText("Note: the app won't run unless you've selected the 1) Image Analyst output file,
+               2) Plate metadata file, and
+               3) saving folder")
       ),
     
     
     mainPanel(
-      h1("Instructions"),
+      h1(strong("Instructions")),
       br(),
       p("Follow the instructions below to run the FAST Data Analysis app:"),
       br(),
       br(),
-      p(em("1) Enter your plate matadata")),
+      p(strong(em("1) Enter your plate metadata"))),
       br(),
       p("Download the plate-metadata.csv file, and modify it appropriately to match your plate layout."),
       p("○ Indicate which wells contain senescent (e.g. \"SEN\") or non-senescent cells (e.g. \"CTL\") in the Condition plate template."),
       p("○ Indicate which are the background wells in the Condition plate template by adding \"_background\" in the well label (e.g. \"SEN_background\" and \"CTL_background\")."),
-      p("○ Optional: add metadata regarding up to 2 additional variables if present in your experiment (e.g. different culturing condtions, or different concentrations of a drug treatment, etc.) in the 2 additional plate templates."),
-      p(span(strong("Note")), " If no additional variables are present, the empty plate tamplates can be deleted from the plate-metadata.csv file"),
+      p("○ Optional: add metadata regarding up to 2 additional variables if present in your experiment (e.g. different culturing conditions, or different concentrations of a drug treatment, etc.) in the 2 additional plate templates."),
+      p(span(strong("Note")), " If only 1 or no additional variables are present, the empty plate templates can be deleted from the plate-metadata.csv file"),
       br(),
-      p(em("2) Select your plate-metadata.csv file and Image Analsyt output file")),
-      p(span(strong("Note")), " to keep your file more organized, it is recommended to have both your plate-metadat"),
+      p(strong(em("2) Select your Image Analyst output and the modified plate-metadata.csv file"))),
+      p(span(strong("Note")), " to keep your file more organized, it is recommended to have both of these files in the same folder"),
       br(),
-      p(em("3) Modify the analysis parameters to your preferences")),
+      p(strong(em("3) Modify the analysis parameters to your preferences"))),
       br(),
-      p(em("4) Select a folder where you want the analysis results to be saved in")),
+      p(strong(em("4) Select a folder where you want the analysis results to be saved in"))),
+      p(span(strong("Note")), " to keep your file more organized, it is recommended to select the folder that contains both your plate-metadata and Image Analyst output files"),
       br(),
       textOutput("analysis_output")
       )
@@ -141,6 +138,20 @@ ui <- fluidPage(
 # START: Server -----------------------------------------------------------
 
 server <- function(input, output, session) {
+  
+  ## download plate-metadata file
+  output$download <- downloadHandler(
+    filename = function() {
+      "plate-metadata.csv"
+    },
+    
+    content = function(file) {
+      
+      url <- "https://raw.githubusercontent.com/f-neri/FAST-Data-Analysis/main/plate-metadata.csv"
+      
+      download.file(url, destfile = file, method = "auto")
+    }
+  )
   
   ## select folder as wd, where analysis results will be saved
   observeEvent(
@@ -169,6 +180,20 @@ server <- function(input, output, session) {
     ## conditions for execution
     req(input$Image_Analyst_output_file_name, input$plate_template_name, input$directory > 0)
     
+    ## progress bar function
+    
+    if (input$assess_cell_viability_and_senescence_markers_changes == TRUE) {
+      tot_steps <- 25
+    } else {
+      tot_steps <- 17
+    }
+    
+    show_analysis_progress <- function(file_name_generated = "") {
+      percentage_progress <<- percentage_progress + 1/tot_steps*100 
+      incProgress(1,
+                  detail = str_c("Progress: ", round(percentage_progress, digits = 0), "%\n
+                                   Generating ",file_name_generated))
+    }
     
     ## input files
     Image_Analyst_output_file_name <- input$Image_Analyst_output_file_name$datapath
@@ -202,7 +227,7 @@ server <- function(input, output, session) {
     
     percentage_progress <<- 0 # sets progress bar initial value to 0
     
-    withProgress(min = 0, max = 34, message = "Analysis is running", value = 0, {
+    withProgress(min = 0, max = tot_steps, message = "Analysis is running", value = 0, {
       
       # all script steps must be entered here
       # to be able to see them on progress bar
@@ -1306,7 +1331,7 @@ The only variables that can be entered in the plate-template file are
       write.xlsx(sheets_list, file = str_c(getwd(),"/",graphs_folder,"/analysis_report.xlxs", sep = ""))
       
       
-      # Cell Viability Assessment: START ----------------------------------------
+      # Cell Viability and Staining Changes: START ----------------------------------------
       
       show_analysis_progress("adjustments for optional analysis")
       
