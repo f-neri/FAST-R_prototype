@@ -76,7 +76,7 @@ ui <- fluidPage(
       checkboxInput("invert_colors", label = "Invert palette colors order?"),
       br(),
       numericInput("resolution_dpi", label = "Graphs resolution (dpi)", value = 150), # if changed to selectInput gives issue
-      helpText("low: 72; medium: 150; high: 300; ultra high; 600"),
+      helpText("low: 72; medium: 150; high: 300; ultra high: 600"),
       br(),
       p(strong("Character fonts for graph text")),
       numericInput("size_legend_title", label = "Legend title", value = 14),
@@ -717,9 +717,9 @@ The only variables that can be entered in the plate-template file are
       
       ## adding variables to distinguish cells above and below thresholds
       df_positivity <- mutate(df_with_thresholds,
-                              EdU_pos = if_else(EdU >= EdU_threshold, "EdU+", "EdU-"),
-                              SABGal_pos = if_else(SABGal >= SABGal_threshold,"SAβGal+", "SAβGal-")) %>%
-        unite(c(EdU_pos,SABGal_pos), col = "Positivity", sep = " ", remove = F)
+                              EdU_pos = if_else(EdU >= EdU_threshold, "EdU +", "EdU -"),
+                              SABGal_pos = if_else(SABGal >= SABGal_threshold,"SAβGal +", "SAβGal -")) %>%
+        unite(c(EdU_pos,SABGal_pos), col = "Positivity", sep = "  ", remove = F)
       
       ## creating tibble with counts of cells above and below thresholds
       grouping_arguments_positivity_x <- c(grouping_arguments_no_well, "Positivity")
