@@ -183,9 +183,9 @@ server <- function(input, output, session) {
     ## progress bar function
     
     if (input$assess_cell_viability_and_senescence_markers_changes == TRUE) {
-      tot_steps <- 25
+      tot_steps <- 27
     } else {
-      tot_steps <- 17
+      tot_steps <- 19
     }
     
     show_analysis_progress <- function(file_name_generated = "") {
@@ -1059,9 +1059,9 @@ The only variables that can be entered in the plate-template file are
       
       default_png()# saves the plot above to PNG
       
-      # graph area by well ------------------------------------------------------
+      # graph Area by well ------------------------------------------------------
       
-      show_analysis_progress("graph: area_by-well.png")
+      show_analysis_progress("graph: median_area_by-well.png")
       
       ggplot(df_summary_percentage_no_background,
              aes(x = condition,
@@ -1087,11 +1087,83 @@ The only variables that can be entered in the plate-template file are
         color_scale_conditions +
         fill_scale_conditions
       
-      file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_area_by-well.png", sep = "") # gets string with full path and file name for plot
+      file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_area_by-well.png", sep = "") # gets string with full path and file name for plot
       
       graph_counter <- graph_counter + 1
       
-      default_png()# saves the plot above to PNG
+      300 * (resolution_dpi/72) + 180 * grid_col_n * (resolution_dpi/72)
+      
+      default_png(width = 200 * (resolution_dpi/72) + 90 * grid_col_n * (resolution_dpi/72))# saves the plot above to PNG
+      
+      
+      # graph EdU by well ------------------------------------------------------
+      
+      show_analysis_progress("graph: median_EdU_by-well.png")
+      
+      ggplot(df_summary_signal_no_background,
+             aes(x = condition,
+                 y = EdU_Median,
+                 color = condition)) +
+        geom_boxplot(linewidth = 0.25) +
+        geom_point(size = 3,
+                   shape = 21,
+                   color = "black",
+                   aes(fill = condition)) +
+        labs(
+          color = "Condition",
+          fill = "Condition",
+          x = "Condition",
+          y = expression(paste("Median EdU intensity (AU)"))
+        ) +
+        {if (length(additional_variables) == 1)
+          facet_grid(cols = vars(additional_variable_1)) } +
+        {if (length(additional_variables) == 2)
+          facet_grid(cols = vars(additional_variable_1),
+                     rows = vars(additional_variable_2)) } +
+        guides(colour = guide_legend(override.aes = list(size = 3))) +
+        color_scale_conditions +
+        fill_scale_conditions
+      
+      file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_EdU_by-well.png", sep = "") # gets string with full path and file name for plot
+      
+      graph_counter <- graph_counter + 1
+      
+      default_png(width = 200 * (resolution_dpi/72) + 90 * grid_col_n * (resolution_dpi/72))# saves the plot above to PNG
+      
+      
+      # graph SABGal by well ------------------------------------------------------
+      
+      show_analysis_progress("graph: median_SABGal_by-well.png")
+      
+      ggplot(df_summary_signal_no_background,
+             aes(x = condition,
+                 y = SABGal_Median,
+                 color = condition)) +
+        geom_boxplot(linewidth = 0.25) +
+        geom_point(size = 3,
+                   shape = 21,
+                   color = "black",
+                   aes(fill = condition)) +
+        labs(
+          color = "Condition",
+          fill = "Condition",
+          x = "Condition",
+          y = expression(paste("Median SA-\u03B2-Gal OD"))
+        ) +
+        {if (length(additional_variables) == 1)
+          facet_grid(cols = vars(additional_variable_1)) } +
+        {if (length(additional_variables) == 2)
+          facet_grid(cols = vars(additional_variable_1),
+                     rows = vars(additional_variable_2)) } +
+        guides(colour = guide_legend(override.aes = list(size = 3))) +
+        color_scale_conditions +
+        fill_scale_conditions
+      
+      file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_SABGal_by-well.png", sep = "") # gets string with full path and file name for plot
+      
+      graph_counter <- graph_counter + 1
+      
+      default_png(width = 200 * (resolution_dpi/72) + 90 * grid_col_n * (resolution_dpi/72))# saves the plot above to PNG
       
       
       # graph 3D: median area, SABGal, EdU -------------------------------------
