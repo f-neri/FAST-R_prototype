@@ -121,13 +121,13 @@ ui <- fluidPage(
       p("○ Optional: add metadata regarding up to 2 additional variables if present in your experiment (e.g. different culturing conditions, or different concentrations of a drug treatment, etc.) in the 2 additional plate templates."),
       p(span(strong("Note")), " If only 1 or no additional variables are present, the empty plate templates can be deleted from the plate-metadata.csv file"),
       br(),
-      p(strong(em("2) Select your Image Analyst output and the modified plate-metadata.csv file"))),
-      p(span(strong("Note")), " to keep your file more organized, it is recommended to have both of these files in the same folder"),
+      p(strong(em("2) Select your Image Analyst output and the modified plate-metadata.csv files"))),
+      p(span(strong("Note")), " to keep your files more organized, it is recommended to have both of these files in the same folder"),
       br(),
       p(strong(em("3) Modify the analysis parameters to your preferences"))),
       br(),
       p(strong(em("4) Select a folder where you want the analysis results to be saved in"))),
-      p(span(strong("Note")), " to keep your file more organized, it is recommended to select the folder that contains both your plate-metadata and Image Analyst output files"),
+      p(span(strong("Note")), " to keep your files more organized, it is recommended to select the folder that contains both your plate-metadata and Image Analyst output files"),
       br(),
       textOutput("analysis_output")
       )
