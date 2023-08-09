@@ -78,12 +78,15 @@ ui <- fluidPage(
       numericInput("resolution_dpi", label = "Graphs resolution (dpi)", value = 150), # if changed to selectInput gives issue
       helpText("low: 72; medium: 150; high: 300; ultra high: 600"),
       br(),
-      p(strong("Character fonts for graph text")),
+      p(strong("Font size for graph text")),
       numericInput("size_legend_title", label = "Legend title", value = 14),
       numericInput("size_legend_text", label = "Legend text", value = 12),
       numericInput("size_axis_title", label = "Axis title", value = 14),
       numericInput("size_axis_text", label = "Axis text", value = 12),
       numericInput("size_facets_text", label = "Facet text", value = 14),
+      br(),
+      p(strong("Remove text in 3D graphs")),
+      checkboxInput("remove_3D_labels", label = "Remove axis labels and plot title from 3D graphs? (Optional)"),
       br(),
       br(),
       h3(em("Optional Analysis")),
@@ -164,7 +167,7 @@ server <- function(input, output, session) {
         # condition prevents handler execution on initial app launch
         
         # launch the directory selection dialog with initial path read from the widget
-        selected_directory <- choose.dir(default = readDirectoryInput(session, 'directory'))
+        selected_directory <<- choose.dir(default = readDirectoryInput(session, 'directory'))
         
         # update the widget value
         updateDirectoryInput(session, 'directory', value = selected_directory)
@@ -511,6 +514,9 @@ The only variables that can be entered in the plate-template file are
         unique() %>%
         length()
       
+      conditions_n_signal <- conditions_n[!( str_detect( conditions_n , "_background" ) )] %>% length()
+      
+      
       ## graph counter
       
       graph_counter <- 1
@@ -765,7 +771,8 @@ The only variables that can be entered in the plate-template file are
       
       plot_percentage_all_cells(df_percent)
       
-      default_png(height = 60 * (resolution_dpi/72) + 30*conditions_n * grid_row_n * (resolution_dpi/72)) # saves the plot above to PNG
+      default_png(height = 60 * (resolution_dpi/72) + 30*conditions_n * grid_row_n * (resolution_dpi/72),
+                  width = default_width + 60 * (resolution_dpi/72)) # saves the plot above to PNG
       
       
       
@@ -783,7 +790,7 @@ The only variables that can be entered in the plate-template file are
       
       plot_percentage_all_cells(df_percent_no_background)
       
-      default_png(height = 60 * (resolution_dpi/72) + 30*conditions_n/2 * grid_row_n * (resolution_dpi/72)) # saves the plot above to PNG
+      default_png(height = 60 * (resolution_dpi/72) + 30*conditions_n_signal * grid_row_n * (resolution_dpi/72)) # saves the plot above to PNG
       
       
       
@@ -801,7 +808,8 @@ The only variables that can be entered in the plate-template file are
       
       plot_percentage_all_cells(df_percent_only_background)
       
-      default_png(height = 60 * (resolution_dpi/72) + 30*conditions_n/2 * grid_row_n * (resolution_dpi/72)) # saves the plot above to PNG
+      default_png(height = 60 * (resolution_dpi/72) + 30*conditions_n_signal * grid_row_n * (resolution_dpi/72),
+                  width = default_width + 60 * (resolution_dpi/72)) # saves the plot above to PNG
       
       
       # graph area each cell ----------------------------------------------------
@@ -1063,107 +1071,70 @@ The only variables that can be entered in the plate-template file are
       
       show_analysis_progress("graph: median_area_by-well.png")
       
-      ggplot(df_summary_percentage_no_background,
-             aes(x = condition,
-                 y = Area_median,
-                 color = condition)) +
-        geom_boxplot(linewidth = 0.25) +
-        geom_point(size = 3,
-                   shape = 21,
-                   color = "black",
-                   aes(fill = condition)) +
-        labs(
-          color = "Condition",
-          fill = "Condition",
-          x = "Condition",
-          y = expression(paste("Median Nuclear Area (px"^"2", ")"))
-        ) +
-        {if (length(additional_variables) == 1)
-          facet_grid(cols = vars(additional_variable_1)) } +
-        {if (length(additional_variables) == 2)
-          facet_grid(cols = vars(additional_variable_1),
-                     rows = vars(additional_variable_2)) } +
-        guides(colour = guide_legend(override.aes = list(size = 3))) +
-        color_scale_conditions +
-        fill_scale_conditions
+      plot_median_signal_boxplot <- function(data, variable, variable_label) {
+        
+        ggplot(data,
+               aes(y = condition,
+                   x = variable,
+                   color = condition)) +
+          geom_boxplot(linewidth = 0.25) +
+          geom_point(size = 3,
+                     shape = 21,
+                     color = "black",
+                     aes(fill = condition)) +
+          labs(
+            color = "Condition",
+            fill = "Condition",
+            y = "Condition",
+            x = variable_label
+          ) +
+          {if (length(additional_variables) == 1)
+            facet_grid(cols = vars(additional_variable_1)) } +
+          {if (length(additional_variables) == 2)
+            facet_grid(cols = vars(additional_variable_1),
+                       rows = vars(additional_variable_2)) } +
+          guides(colour = guide_legend(override.aes = list(size = 3))) +
+          color_scale_conditions +
+          fill_scale_conditions
+        
+      }
+      
+      plot_median_signal_boxplot(df_summary_percentage_no_background, df_summary_percentage_no_background$Area_median, expression(paste("Median Nuclear Area (px"^"2", ")")))
       
       file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_area_by-well.png", sep = "") # gets string with full path and file name for plot
       
       graph_counter <- graph_counter + 1
       
-      300 * (resolution_dpi/72) + 180 * grid_col_n * (resolution_dpi/72)
-      
-      default_png(width = 200 * (resolution_dpi/72) + 90 * grid_col_n * (resolution_dpi/72))# saves the plot above to PNG
+      default_png(height =  10 * (size_axis_title/14) * (resolution_dpi/72) + 90 * (resolution_dpi/72) + 40*conditions_n_signal * grid_row_n * (resolution_dpi/72),
+                  width = default_width - 120 * (resolution_dpi/72)) # saves the plot above to PNG
       
       
       # graph EdU by well ------------------------------------------------------
       
       show_analysis_progress("graph: median_EdU_by-well.png")
       
-      ggplot(df_summary_signal_no_background,
-             aes(x = condition,
-                 y = EdU_Median,
-                 color = condition)) +
-        geom_boxplot(linewidth = 0.25) +
-        geom_point(size = 3,
-                   shape = 21,
-                   color = "black",
-                   aes(fill = condition)) +
-        labs(
-          color = "Condition",
-          fill = "Condition",
-          x = "Condition",
-          y = expression(paste("Median EdU intensity (AU)"))
-        ) +
-        {if (length(additional_variables) == 1)
-          facet_grid(cols = vars(additional_variable_1)) } +
-        {if (length(additional_variables) == 2)
-          facet_grid(cols = vars(additional_variable_1),
-                     rows = vars(additional_variable_2)) } +
-        guides(colour = guide_legend(override.aes = list(size = 3))) +
-        color_scale_conditions +
-        fill_scale_conditions
+      plot_median_signal_boxplot(df_summary_signal_no_background, df_summary_signal_no_background$EdU_Median, "Median EdU intensity (AU)")
       
       file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_EdU_by-well.png", sep = "") # gets string with full path and file name for plot
       
       graph_counter <- graph_counter + 1
       
-      default_png(width = 200 * (resolution_dpi/72) + 90 * grid_col_n * (resolution_dpi/72))# saves the plot above to PNG
+      default_png(height = 90 * (resolution_dpi/72) + 40*conditions_n_signal * grid_row_n * (resolution_dpi/72),
+                  width = default_width - 120 * (resolution_dpi/72)) # saves the plot above to PNG
       
       
       # graph SABGal by well ------------------------------------------------------
       
       show_analysis_progress("graph: median_SABGal_by-well.png")
       
-      ggplot(df_summary_signal_no_background,
-             aes(x = condition,
-                 y = SABGal_Median,
-                 color = condition)) +
-        geom_boxplot(linewidth = 0.25) +
-        geom_point(size = 3,
-                   shape = 21,
-                   color = "black",
-                   aes(fill = condition)) +
-        labs(
-          color = "Condition",
-          fill = "Condition",
-          x = "Condition",
-          y = expression(paste("Median SA-\u03B2-Gal OD"))
-        ) +
-        {if (length(additional_variables) == 1)
-          facet_grid(cols = vars(additional_variable_1)) } +
-        {if (length(additional_variables) == 2)
-          facet_grid(cols = vars(additional_variable_1),
-                     rows = vars(additional_variable_2)) } +
-        guides(colour = guide_legend(override.aes = list(size = 3))) +
-        color_scale_conditions +
-        fill_scale_conditions
+      plot_median_signal_boxplot(df_summary_signal_no_background, df_summary_signal_no_background$SABGal_Median, "Median SA-\u03B2-Gal OD")
       
       file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_SABGal_by-well.png", sep = "") # gets string with full path and file name for plot
       
       graph_counter <- graph_counter + 1
       
-      default_png(width = 200 * (resolution_dpi/72) + 90 * grid_col_n * (resolution_dpi/72))# saves the plot above to PNG
+      default_png(height = 90 * (resolution_dpi/72) + 40*conditions_n_signal * grid_row_n * (resolution_dpi/72),
+                  width = default_width - 120 * (resolution_dpi/72)) # saves the plot above to PNG
       
       
       # graph 3D: median area, SABGal, EdU -------------------------------------
@@ -1232,10 +1203,10 @@ The only variables that can be entered in the plate-template file are
         )
         
         title3d(
-          main = graph_name,
-          xlab = "Integrated SA-B-Gal OD",
-          ylab = "Integrated EdU intensity (AU)",
-          zlab = "Median Nuclear Area (px^2)"
+          main = ifelse( input$remove_3D_labels == TRUE , "" , graph_name) ,
+          xlab = ifelse( input$remove_3D_labels == TRUE , "" , "Integrated SA-B-Gal OD") ,
+          ylab = ifelse( input$remove_3D_labels == TRUE , "" , "Integrated EdU intensity (AU)") ,
+          zlab = ifelse( input$remove_3D_labels == TRUE , "" , "Median Nuclear Area (px^2)")
         )
         
         legend3d("right",
@@ -1355,19 +1326,16 @@ The only variables that can be entered in the plate-template file are
       }
       
       # table with input parameters
-      data_analysis_script_file_name <- "basename(sys.frame(1)$ofile)" # this works only when the whole script is run (Source with Echo, or CTL + Shift + S)
       
       input_parameters <- tibble(
-        parameters = c("data_analysis_script_file_name",
-                       "Image_Analyst_output_file_name",
-                       "plate_template_name",
+        parameters = c("Image_Analyst_output_file_name",
+                       "plate_template_file_name",
                        "DAPI_label_number",
                        "EdU_label_number",
                        "SABGal_label_number",
                        "EdU_threshold_percentile",
                        "SABGal_threshold_percentile",
                        "assess_cell_viability_and_senescence_markers_changes",
-                       "cell_viability_variable",
                        "RColorBrewer_palette",
                        "invert_colors",
                        "resolution_dpi",
@@ -1376,16 +1344,14 @@ The only variables that can be entered in the plate-template file are
                        "size_axis_title",
                        "size_axis_text",
                        "size_facets_text"),
-        input_values = c(data_analysis_script_file_name,
-                         Image_Analyst_output_file_name,
-                         plate_template_name,
+        input_values = c(input$Image_Analyst_output_file_name$name,
+                         input$plate_template_name$name,
                          DAPI_label_number,
                          EdU_label_number,
                          SABGal_label_number,
                          EdU_threshold_percentile,
                          SABGal_threshold_percentile,
                          assess_cell_viability_and_senescence_markers_changes,
-                         cell_viability_variable,
                          RColorBrewer_palette,
                          invert_colors,
                          resolution_dpi,
@@ -1409,7 +1375,10 @@ The only variables that can be entered in the plate-template file are
       
       if (input$assess_cell_viability_and_senescence_markers_changes == FALSE) {
         beep(2)
-        validate("Analysis complete!",
+        validate(paste0("Analysis complete!
+      
+      The analysis results have been saved in the folder you indicated (", selected_directory,"),
+      within ", graphs_folder),
                  errorClass = "analysis_completed")
       }
       
@@ -1801,10 +1770,10 @@ The only variables that can be entered in the plate-template file are
         )
         
         title3d(
-          main = graph_name,
-          xlab = "Integrated SA-B-Gal OD",
-          ylab = "Integrated EdU intensity (AU)",
-          zlab = "Median Nuclear Area (px^2)"
+          main = ifelse( input$remove_3D_labels == TRUE , "" , graph_name) ,
+          xlab = ifelse( input$remove_3D_labels == TRUE , "" , "Integrated SA-B-Gal OD") ,
+          ylab = ifelse( input$remove_3D_labels == TRUE , "" , "Integrated EdU intensity (AU)") ,
+          zlab = ifelse( input$remove_3D_labels == TRUE , "" , "Median Nuclear Area (px^2)")
         )
         
         legend3d("right",
@@ -1928,7 +1897,10 @@ The only variables that can be entered in the plate-template file are
       # Beep at end --------------------------------------------------------------
       
       beep(2)
-      validate("Analysis complete!",
+      validate(paste0("Analysis complete!
+      
+The analysis results have been saved in the folder you indicated, within
+", graphs_folder),
                errorClass = "analysis_completed")
       
     })
