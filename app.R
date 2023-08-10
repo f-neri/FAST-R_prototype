@@ -1519,7 +1519,7 @@ The only variables that can be entered in the plate-template file are
       show_analysis_progress("tidy IA output and analysis report")
       
       # Excel with tidy IA input ------------------------------------------------
-      write_csv(tidy_data6, file = str_c(getwd(),"/",graphs_folder,"/tidy-IA-output.csv", sep = ""))
+      write_csv(tidy_data6, file = str_c(getwd(),"/",graphs_folder,"/_tidy-IA-output.csv", sep = ""))
       
       
       # Summary table -----------------------------------------------------------
@@ -1594,7 +1594,7 @@ The only variables that can be entered in the plate-template file are
       
       sheets_list <- list("Results_Summary" = summary_table, "Input_Parameters" = input_parameters)
       
-      write.xlsx(sheets_list, file = str_c(getwd(),"/",graphs_folder,"/analysis_report.xlsx", sep = ""))
+      write.xlsx(sheets_list, file = str_c(getwd(),"/",graphs_folder,"/_analysis_report.xlsx", sep = ""))
       
       
       # Cell Viability and Staining Changes: START ----------------------------------------
