@@ -75,7 +75,7 @@ ui <- fluidPage(
       helpText("Find admissible color palette options at https://r-graph-gallery.com/38-rcolorbrewers-palettes.html"),
       checkboxInput("invert_colors", label = "Invert palette colors order?"),
       br(),
-      numericInput("resolution_dpi", label = "Graphs resolution (dpi)", value = 150), # if changed to selectInput gives issue
+      numericInput("resolution_dpi", label = "Graphs resolution (dpi)", value = 600), # if changed to selectInput gives issue
       helpText("low: 72; medium: 150; high: 300; ultra high: 600"),
       br(),
       p(strong("Font size for graph text")),
@@ -186,9 +186,9 @@ server <- function(input, output, session) {
     ## progress bar function
     
     if (input$assess_cell_viability_and_senescence_markers_changes == TRUE) {
-      tot_steps <- 27
+      tot_steps <- 33
     } else {
-      tot_steps <- 19
+      tot_steps <- 24
     }
     
     show_analysis_progress <- function(file_name_generated = "") {
@@ -1099,7 +1099,7 @@ The only variables that can be entered in the plate-template file are
         
       }
       
-      plot_median_signal_boxplot(df_summary_percentage_no_background, df_summary_percentage_no_background$Area_median, expression(paste("Median Nuclear Area (px"^"2", ")")))
+      plot_median_signal_boxplot(df_summary_signal_no_background, df_summary_signal_no_background$Area_median, expression(paste("Median Nuclear Area (px"^"2", ")")))
       
       file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_area_by-well.png", sep = "") # gets string with full path and file name for plot
       
@@ -1137,7 +1137,85 @@ The only variables that can be entered in the plate-template file are
                   width = default_width - 120 * (resolution_dpi/72)) # saves the plot above to PNG
       
       
+
+      # graph Area by well - fold change --------------------------------
+      
+      ## create df with averages for median signals
+      
+      df_median_signal_average <- df_summary_signal_no_background %>%
+        group_by(!!!syms(grouping_arguments_no_well)) %>%
+        summarise(
+          average_SABGal_Median = mean(SABGal_Median),
+          average_EdU_Median = mean(EdU_Median),
+          average_Area_median = mean(Area_median)
+          )
+      
+      ## generate min values that will be set as reference for fold changes (value = 1)
+      
+      average_SABGal_Median_min <- min(df_median_signal_average$average_SABGal_Median)
+      average_EdU_Median_min <-  min(df_median_signal_average$average_EdU_Median)
+      average_Area_Median_min <- min(df_median_signal_average$average_Area_median)
+      
+      ## add fold change values to df_summary_signal_no_background
+      
+      df_summary_signal_no_background <- df_summary_signal_no_background %>%
+        mutate(
+          fold_change_SABGal = SABGal_Median/average_SABGal_Median_min,
+          fold_change_EdU = EdU_Median/average_EdU_Median_min,
+          fold_change_Area = Area_median/average_Area_Median_min
+        )
+      
+      
+      ## plot Area
+      
+      show_analysis_progress("graph: median_Area_by-well_fold-change.png")
+      
+      plot_median_signal_boxplot(df_summary_signal_no_background, df_summary_signal_no_background$fold_change_Area, "fold change Nuclear Area")
+      
+      file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_Area_by-well_fold-change.png", sep = "") # gets string with full path and file name for plot
+      
+      graph_counter <- graph_counter + 1
+      
+      default_png(height = 90 * (resolution_dpi/72) + 40*conditions_n_signal * grid_row_n * (resolution_dpi/72),
+                  width = default_width - 120 * (resolution_dpi/72)) # saves the plot above to PNG
+      
+      
+      # graph EdU by well - fold change --------------------------------
+      
+      ## plot EdU
+      
+      show_analysis_progress("graph: median_EdU_by-well_fold-change.png")
+      
+      plot_median_signal_boxplot(df_summary_signal_no_background, df_summary_signal_no_background$fold_change_EdU, "fold change EdU")
+      
+      file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_EdU_by-well_fold-change.png", sep = "") # gets string with full path and file name for plot
+      
+      graph_counter <- graph_counter + 1
+      
+      default_png(height = 90 * (resolution_dpi/72) + 40*conditions_n_signal * grid_row_n * (resolution_dpi/72),
+                  width = default_width - 120 * (resolution_dpi/72)) # saves the plot above to PNG
+      
+      # graph SABGal by well - fold change --------------------------------
+      
+      ## plot SABGal
+      
+      show_analysis_progress("graph: median_SABGal_by-well_fold-change.png")
+      
+      plot_median_signal_boxplot(df_summary_signal_no_background, df_summary_signal_no_background$fold_change_SABGal, "fold change SA-\u03B2-Gal")
+      
+      file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_median_SABGal_by-well_fold-change.png", sep = "") # gets string with full path and file name for plot
+      
+      graph_counter <- graph_counter + 1
+      
+      default_png(height = 90 * (resolution_dpi/72) + 40*conditions_n_signal * grid_row_n * (resolution_dpi/72),
+                  width = default_width - 120 * (resolution_dpi/72)) # saves the plot above to PNG
+      
+      
+      
+      
       # graph 3D: median area, SABGal, EdU -------------------------------------
+      
+      show_analysis_progress("graph: median-signal_SABGal-EdU-NuclearArea.html")
       
       ## adding color column
       
@@ -1217,7 +1295,7 @@ The only variables that can be entered in the plate-template file are
                  inset=c(0.02)
         )
         
-        view3d(theta = -50, phi = 5, zoom = 0.9)
+        view3d(theta = -50, phi = 25, zoom = 0.9)
         
       }
       
@@ -1289,6 +1367,153 @@ The only variables that can be entered in the plate-template file are
         
       }
       
+      
+
+      # graph 3D: median area, SABGal, EdU - fold change ------------------------
+      
+      show_analysis_progress("graph: median-signal_SABGal-EdU-NuclearArea_fold-change.html")
+      
+      ## adding graph limits (for consistency across 3D plots) 
+      
+      variables <- c("fold_change_SABGal", "fold_change_EdU", "fold_change_Area")
+      
+      limits_list_fold_change <- vector("list", length = 3)
+      
+      for (i in seq_along(variables)) {
+        limits_list_fold_change[[i]] <- generate_limits(variables[[i]])
+      }
+      
+      adjust_limits <- function(limits_number) {
+        extra_room <<- (limits_list_fold_change[[limits_number]][2] - limits_list_fold_change[[limits_number]][1])*0.03
+        
+        limits_list_fold_change[[limits_number]] <<- c(limits_list_fold_change[[limits_number]][1] - extra_room, limits_list_fold_change[[limits_number]][2] + extra_room)
+        
+        limits_list_fold_change[[limits_number]] <<- limits_list_fold_change[[limits_number]] %>% round(digits = 1)
+      }
+      
+      for (i in seq_along(limits_list_fold_change)) {
+        adjust_limits(i)
+      }
+      
+      ## 3D plot function
+      
+      plot_3D_median_signal_fold_change <- function(data, graph_name) { ## working
+        open3d() ## this is needed to open up a new rgl widget with each function run; otherwise, new runs will add points to previous plots
+        plot3d(x = data$fold_change_SABGal,
+               y = data$fold_change_EdU,
+               z = data$fold_change_Area,
+               
+               xlab = "",
+               ylab = "",
+               zlab = "",
+               
+               xlim = limits_list_fold_change[[1]],
+               ylim = limits_list_fold_change[[2]],
+               zlim = limits_list_fold_change[[3]],
+               
+               col = data$colors,
+               type = "s",
+               size = 1,
+               axes = FALSE,
+               labels = FALSE
+        )
+        
+        grid3d(side = c("x+", "y", "z"),
+               n = 6)
+        
+        axes3d(edges = c("x-+", "y", "z"),
+               nticks = 6
+        )
+        
+        title3d(
+          main = ifelse( input$remove_3D_labels == TRUE , "" , graph_name) ,
+          xlab = ifelse( input$remove_3D_labels == TRUE , "" , "fold change SA-B-Gal") ,
+          ylab = ifelse( input$remove_3D_labels == TRUE , "" , "fold change EdU") ,
+          zlab = ifelse( input$remove_3D_labels == TRUE , "" , "fold change Nuclear Area")
+        )
+        
+        legend3d("right",
+                 legend = unique(data$condition),
+                 col =unique(data$colors),
+                 pch = 16,
+                 cex=1,
+                 inset=c(0.02)
+        )
+        
+        view3d(theta = -50, phi = 25, zoom = 0.9)
+        
+      }
+      
+      ## generate and save 3D graph function
+      
+      generate_3D_graphs_fold_change <- function(data, graph_name) {
+        plot_3D_median_signal_fold_change(data, graph_name)
+        
+        file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_", graph_name, sep = "") # gets string with full path and file name for plot
+        
+        graph_counter <<- graph_counter + 1
+        
+        ### save 3D plot
+        htmlwidgets::saveWidget(rglwidget(width = 800, height = 800),
+                                file = file_path,
+                                libdir = "HTML-dependencies",
+                                selfcontained = FALSE
+        )
+      }
+      
+      ## graph with all values
+      
+      generate_3D_graphs_fold_change(df_summary_signal_no_background, "median-signal_SABGal-EdU-NuclearArea_fold-change.html")
+      
+      ## graphs 3D filtered for unique combinations of additional_variables
+      
+      if(length(additional_variables) > 0) {
+        
+        if(length(additional_variables) == 1) {
+          filtering_vec <- df_summary_signal_no_background$additional_variable_1 %>% unique()
+          
+          df_names <- str_c("median-signal_SABGal-EdU-NuclearArea_fold-change_", additional_variable_1,"-", filtering_vec, ".html") # names of graph files
+          
+          df_list <- vector("list", length = length(filtering_vec)) # filtered dfs
+          
+          for (i in seq_along(filtering_vec)) {
+            df_list[[i]] <- filter(df_summary_signal_no_background, additional_variable_1 == filtering_vec[[i]])
+          }
+          
+          parameters <- tibble(filtered_df = df_list, name = df_names)
+          
+          for (i in seq_len(nrow(parameters))) { # generate graphs
+            generate_3D_graphs_fold_change(parameters$filtered_df[[i]], parameters$name[[i]])
+          }
+          
+        } else {
+          
+          filtering_vec_1 <- df_summary_signal_no_background$additional_variable_1 %>% unique()
+          filtering_vec_2 <- df_summary_signal_no_background$additional_variable_2 %>% unique()
+          
+          filtering_vec <- expand_grid(additional_variable_1 = filtering_vec_1,
+                                       additional_variable_2 = filtering_vec_2) # all possible combination of var 1 & var 2
+          
+          df_names <- str_c("median-signal_SABGal-EdU-NuclearArea_fold-change_", additional_variable_1,"-", filtering_vec[[1]], "_", additional_variable_2, "-", filtering_vec[[2]], ".html")
+          
+          df_list <- vector("list", length = nrow(filtering_vec))
+          
+          for (i in seq_len(nrow(filtering_vec))) {
+            df_list[[i]] <- filter(df_summary_signal_no_background, additional_variable_1 == filtering_vec[[1]][[i]] & additional_variable_2 == filtering_vec[[2]][[i]])
+          }
+          
+          parameters <- tibble(filtered_df = df_list, name = df_names)
+          
+          for (i in seq_len(nrow(parameters))) {
+            generate_3D_graphs_fold_change(parameters$filtered_df[[i]], parameters$name[[i]])
+          }
+          
+        }
+        
+      }
+      
+      
+      
       # Plotting SABGal and EdU graphs: END -----------------------------------
       
       show_analysis_progress("tidy IA output and analysis report")
@@ -1305,6 +1530,9 @@ The only variables that can be entered in the plate-template file are
                                  Nuclear_Area_median = median(Nuclear_Area),
                                  SABGal_median_signal = median(SABGal),
                                  EdU_median_signal = median(EdU),
+                                 fold_change_Area = Nuclear_Area_median/average_Area_Median_min,
+                                 fold_change_SABGal = SABGal_median_signal/average_SABGal_Median_min,
+                                 fold_change_EdU = EdU_median_signal/average_EdU_Median_min,
                                  SABGal_threshold = mean(SABGal_threshold),
                                  EdU_threshold = mean(EdU_threshold),
                                  SABGal_positive_count = sum(SABGal >= SABGal_threshold),
@@ -1366,12 +1594,10 @@ The only variables that can be entered in the plate-template file are
       
       sheets_list <- list("Results_Summary" = summary_table, "Input_Parameters" = input_parameters)
       
-      write.xlsx(sheets_list, file = str_c(getwd(),"/",graphs_folder,"/analysis_report.xlxs", sep = ""))
+      write.xlsx(sheets_list, file = str_c(getwd(),"/",graphs_folder,"/analysis_report.xlsx", sep = ""))
       
       
       # Cell Viability and Staining Changes: START ----------------------------------------
-      
-      show_analysis_progress("adjustments for optional analysis")
       
       if (input$assess_cell_viability_and_senescence_markers_changes == FALSE) {
         beep(2)
@@ -1381,6 +1607,8 @@ The only variables that can be entered in the plate-template file are
       within ", graphs_folder),
                  errorClass = "analysis_completed")
       }
+      
+      show_analysis_progress("adjustments for optional analysis")
       
       # checks ------------------------------------------------------------------
       
@@ -1723,7 +1951,7 @@ The only variables that can be entered in the plate-template file are
       
       # graphs scatterplot changes in median values 3D (w/ Nuclear Area) --------
       
-      show_analysis_progress("graphs: median-signal_SABGal-EdU-NuclearArea")
+      show_analysis_progress("graphs: changes_median-signal_SABGal-EdU-NuclearArea")
       
       # adding colors
       
@@ -1784,7 +2012,7 @@ The only variables that can be entered in the plate-template file are
                  inset=c(0.02)
         )
         
-        view3d(theta = -50, phi = 5, zoom = 0.9)
+        view3d(theta = -50, phi = 25, zoom = 0.9)
         
       }
       
@@ -1812,7 +2040,7 @@ The only variables that can be entered in the plate-template file are
         
         filtering_vec <- summary_table_signal$condition %>% unique()
         
-        df_names <- str_c("median-signal_SABGal-EdU-NuclearArea_changes-", treatment_variable,"_", filtering_vec, ".html") # names of graph files
+        df_names <- str_c("changes_median-signal_SABGal-EdU-NuclearArea_", treatment_variable,"-", filtering_vec, ".html") # names of graph files
         
         df_list <- vector("list", length = length(filtering_vec)) # filtered dfs
         
@@ -1834,7 +2062,7 @@ The only variables that can be entered in the plate-template file are
         filtering_vec <- expand_grid(condition = filtering_vec_1,
                                      facet_grid_cols = filtering_vec_2)  # all possible combination of conditino and other additional variable
         
-        df_names <- str_c("median-signal_SABGal-EdU-NuclearArea_changes-", treatment_variable,"_", filtering_vec[[1]], "_", facet_grid_cols, "-", filtering_vec[[2]], ".html")
+        df_names <- str_c("changes_median-signal_SABGal-EdU-NuclearArea_", treatment_variable,"-", filtering_vec[[1]], "_", facet_grid_cols, "-", filtering_vec[[2]], ".html")
         
         df_list <- vector("list", length = nrow(filtering_vec))
         
@@ -1849,6 +2077,125 @@ The only variables that can be entered in the plate-template file are
         }
         
       }
+      
+      
+      # graphs scatterplot changes in median values 3D - fold change (w/ Nuclear Area) --------
+      
+      show_analysis_progress("graphs: changes_median-signal_SABGal-EdU-NuclearArea_fold-change")
+      
+      ## 3D plot function
+      
+      plot_3D_median_signal_relative_changes <- function(data, graph_name) { ## working
+        open3d() ## this is needed to open up a new rgl widget with each function run; otherwise, new runs will add points to previous plots
+        plot3d(x = data$fold_change_SABGal,
+               y = data$fold_change_EdU,
+               z = data$fold_change_Area,
+               
+               xlab = "",
+               ylab = "",
+               zlab = "",
+               
+               xlim = limits_list_fold_change[[1]],
+               ylim = limits_list_fold_change[[2]],
+               zlim = limits_list_fold_change[[3]],
+               
+               col = data$colors,
+               type = "s",
+               size = 1,
+               axes = FALSE,
+               labels = FALSE
+        )
+        
+        grid3d(side = c("x+", "y", "z"),
+               n = 6)
+        
+        axes3d(edges = c("x-+", "y", "z"),
+               nticks = 6
+        )
+        
+        title3d(
+          main = ifelse( input$remove_3D_labels == TRUE , "" , graph_name) ,
+          xlab = ifelse( input$remove_3D_labels == TRUE , "" , "fold change SA-B-Gal") ,
+          ylab = ifelse( input$remove_3D_labels == TRUE , "" , "fold change EdU") ,
+          zlab = ifelse( input$remove_3D_labels == TRUE , "" , "fold change Nuclear Area")
+        )
+        
+        legend3d("right",
+                 legend = unique(data$treatment_variable), ## legend changed to show treatment variable
+                 col =unique(data$colors),
+                 pch = 16,
+                 cex=1,
+                 inset=c(0.02)
+        )
+        
+        view3d(theta = -50, phi = 25, zoom = 0.9)
+        
+      }
+      
+      
+      # generate 3D graphs function
+      
+      generate_3D_graphs_relative_changes <- function(data, graph_name) {
+        plot_3D_median_signal_relative_changes(data, graph_name)
+        
+        file_path <- str_c(getwd(),"/",graphs_folder,"/", ifelse(graph_counter %/% 10 < 1, str_c("0", graph_counter), graph_counter), "_", graph_name, sep = "") # gets string with full path and file name for plot
+        
+        graph_counter <<- graph_counter + 1
+        
+        ### save 3D plot
+        htmlwidgets::saveWidget(rglwidget(width = 800, height = 800),
+                                file = file_path,
+                                libdir = "HTML-dependencies",
+                                selfcontained = FALSE
+        )
+      }
+      
+      ## graphs 3D filtered for unique conditions (+ other additional variable if present)
+      
+      if(length(facet_grid_cols) == 0) { # filtering for condition
+        
+        filtering_vec <- summary_table_signal$condition %>% unique()
+        
+        df_names <- str_c("changes_median-signal_SABGal-EdU-NuclearArea_fold-change_", treatment_variable,"-", filtering_vec, ".html") # names of graph files
+        
+        df_list <- vector("list", length = length(filtering_vec)) # filtered dfs
+        
+        for (i in seq_along(filtering_vec)) {
+          df_list[[i]] <- filter(summary_table_signal, condition == filtering_vec[[i]])
+        }
+        
+        parameters <- tibble(filtered_df = df_list, name = df_names)
+        
+        for (i in seq_len(nrow(parameters))) { # generate graphs
+          generate_3D_graphs_relative_changes(parameters$filtered_df[[i]], parameters$name[[i]])
+        }
+        
+      } else { # filtering for condition + other additional variable
+        
+        filtering_vec_1 <- summary_table_signal$condition %>% unique()
+        filtering_vec_2 <- summary_table_signal[[facet_grid_cols]] %>% unique()
+        
+        filtering_vec <- expand_grid(condition = filtering_vec_1,
+                                     facet_grid_cols = filtering_vec_2)  # all possible combination of conditino and other additional variable
+        
+        df_names <- str_c("changes_median-signal_SABGal-EdU-NuclearArea_fold-change_", treatment_variable,"-", filtering_vec[[1]], "_", facet_grid_cols, "-", filtering_vec[[2]], ".html")
+        
+        df_list <- vector("list", length = nrow(filtering_vec))
+        
+        for (i in seq_len(nrow(filtering_vec))) {
+          df_list[[i]] <- filter(summary_table_signal, condition == filtering_vec[[1]][[i]] & facet_grid_cols == filtering_vec[[2]][[i]])
+        }
+        
+        parameters <- tibble(filtered_df = df_list, name = df_names)
+        
+        for (i in seq_len(nrow(parameters))) {
+          generate_3D_graphs_relative_changes(parameters$filtered_df[[i]], parameters$name[[i]])
+        }
+        
+      }
+      
+      
+      
       
       # graphs scatterplot changes percentages ---------------------------------
       
@@ -1899,9 +2246,9 @@ The only variables that can be entered in the plate-template file are
       beep(2)
       validate(paste0("Analysis complete!
       
-The analysis results have been saved in the folder you indicated, within
-", graphs_folder),
-               errorClass = "analysis_completed")
+      The analysis results have been saved in the folder you indicated (", selected_directory,"),
+      within ", graphs_folder),
+                 errorClass = "analysis_completed")
       
     })
   })
