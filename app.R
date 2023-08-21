@@ -64,8 +64,8 @@ ui <- fluidPage(
       br(),
       h3(em("Positive Staining Thresholds")),
       br(),
-      numericInput("EdU_threshold_percentile", label = "Percentile EdU threshold", value = 0.95),
-      numericInput("SABGal_threshold_percentile", label = "Percentile SA-β-Gal threshold", value = 0.95),
+      numericInput("EdU_threshold_percentile", label = "Percentile EdU threshold", value = 0.95, min = 0.95, max = 1.00, step = 0.01),
+      numericInput("SABGal_threshold_percentile", label = "Percentile SA-β-Gal threshold", value = 0.95, min = 0.95, max = 1.00, step = 0.01),
       helpText("Indicate the percentile values to use (0-1) to automatically calculate the positive staining thresholds for
                EdU and SA-β-Gal staining (based on background staining)"),
       br(),
@@ -75,7 +75,9 @@ ui <- fluidPage(
       helpText("Find admissible color palette options at https://r-graph-gallery.com/38-rcolorbrewers-palettes.html"),
       checkboxInput("invert_colors", label = "Invert palette colors order?"),
       br(),
-      numericInput("resolution_dpi", label = "Graphs resolution (dpi)", value = 600), # if changed to selectInput gives issue
+      selectInput("resolution_dpi", label = "Graphs resolution (dpi)",
+                  choices = c(72, 150, 300, 600),
+                  selected = 600),
       helpText("low: 72; medium: 150; high: 300; ultra high: 600"),
       br(),
       p(strong("Font size for graph text")),
@@ -218,7 +220,7 @@ server <- function(input, output, session) {
     RColorBrewer_palette <- input$RColorBrewer_palette
     invert_colors <- input$invert_colors ## invert colors order?
     
-    resolution_dpi <- input$resolution_dpi
+    resolution_dpi <- input$resolution_dpi %>% as.numeric()
     
     size_legend_title <- input$size_legend_title
     size_legend_text <- input$size_legend_text
