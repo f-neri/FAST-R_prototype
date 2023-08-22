@@ -52,40 +52,44 @@ ui <- fluidPage(
       br(),
       selectInput("DAPI_label_number", label = "DAPI label #",
                   choices = c(1, 2, 3),
-                  selected = 1),
+                  selected = 1,
+                  width = "110px"),
       selectInput("EdU_label_number", label = "EdU label #",
                   choices = c(1, 2, 3),
-                  selected = 2),
+                  selected = 2,
+                  width = "110px"),
       selectInput("SABGal_label_number", label = "SA-β-Gal label #",
                   choices = c(1, 2, 3),
-                  selected = 3),
+                  selected = 3,
+                  width = "110px"),
       helpText("Note: the default label # values for DAPI, EdU, and SA-β-Gal should be correct if you followed the
                image analysis protocol correctly"),
       br(),
       h3(em("Positive Staining Thresholds")),
       br(),
-      numericInput("EdU_threshold_percentile", label = "Percentile EdU threshold", value = 0.95, min = 0.95, max = 1.00, step = 0.01),
-      numericInput("SABGal_threshold_percentile", label = "Percentile SA-β-Gal threshold", value = 0.95, min = 0.95, max = 1.00, step = 0.01),
-      helpText("Indicate the percentile values to use (0-1) to automatically calculate the positive staining thresholds for
+      numericInput("EdU_threshold_percentile", label = "Percentile EdU threshold", value = 0.95, min = 0.95, max = 1.00, step = 0.01, width = "220px"),
+      numericInput("SABGal_threshold_percentile", label = "Percentile SA-β-Gal threshold", value = 0.95, min = 0.95, max = 1.00, step = 0.01, width = "220px"),
+      helpText("Indicate the percentile values to use (0.95-1.00) to automatically calculate the positive staining thresholds for
                EdU and SA-β-Gal staining (based on background staining)"),
       br(),
       h3(em("Output Graphs Settings")),
       br(),
-      textInput("RColorBrewer_palette", label = "Color palette (from RColorBrewer)", value = "Dark2"),
+      textInput("RColorBrewer_palette", label = "Color palette (from RColorBrewer)", value = "Dark2", width = "250"),
       helpText("Find admissible color palette options at https://r-graph-gallery.com/38-rcolorbrewers-palettes.html"),
       checkboxInput("invert_colors", label = "Invert palette colors order?"),
       br(),
       selectInput("resolution_dpi", label = "Graphs resolution (dpi)",
                   choices = c(72, 150, 300, 600),
-                  selected = 600),
+                  selected = 600,
+                  width = "180px"),
       helpText("low: 72; medium: 150; high: 300; ultra high: 600"),
       br(),
       p(strong("Font size for graph text")),
-      numericInput("size_legend_title", label = "Legend title", value = 14),
-      numericInput("size_legend_text", label = "Legend text", value = 12),
-      numericInput("size_axis_title", label = "Axis title", value = 14),
-      numericInput("size_axis_text", label = "Axis text", value = 12),
-      numericInput("size_facets_text", label = "Facet text", value = 14),
+      numericInput("size_legend_title", label = "Legend title", value = 14, width = "80px"),
+      numericInput("size_legend_text", label = "Legend text", value = 12, width = "80px"),
+      numericInput("size_axis_title", label = "Axis title", value = 14, width = "80px"),
+      numericInput("size_axis_text", label = "Axis text", value = 12, width = "80px"),
+      numericInput("size_facets_text", label = "Facet text", value = 14, width = "80px"),
       br(),
       p(strong("Remove text in 3D graphs")),
       checkboxInput("remove_3D_labels", label = "Remove axis labels and plot title from 3D graphs? (Optional)"),
@@ -1619,11 +1623,11 @@ The only variables that can be entered in the plate-template file are
       if (length(additional_variables) < 1) {
         beep(1)
         validate(
-          "No additional variable found for cell viability assessment
+      "The Treatment Variable entered doesn't match any variable name present in the plate-metadata.csv file
 
-      Cell viability assessment can only be performed if the
-      additional variable correspodning to a treatment is
-      entered in the plate-template.csv file"
+      Cell viability and senescence markers changes can only be assessed if the
+      Treatment Variable entered is a perfect match to a variable name present
+      in the plate-template.csv file"
         )
       }
       

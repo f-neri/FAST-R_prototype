@@ -6,5 +6,17 @@
 # this is the first time you're using this script (and have never installed the Shiny package before).
 
 # install.packages("shiny")
+# install.packages("devtools")
+# devtools::install_github('wleepang/shiny-directory-input')
+# install.packages("tidyverse")
+# install.packages("readxl")
+# install.packages("plater")
+# install.packages("stringi")
+# install.packages("beepr")
+# install.packages("openxlsx")
+# install.packages("scales")
+# install.packages("rgl")
+# install.packages("htmlwidgets")
+
 library(shiny)
 runGitHub("FAST-Data-Analysis", "f-neri")
