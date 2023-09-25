@@ -32,12 +32,14 @@ ui <- fluidPage(
   ),
   
   titlePanel(
-    strong("FAST Data Analysis App")
+    h1(strong("FAST-R"),
+       br(),
+       em("FAST Data Analysis App"))
     ),
   
   sidebarLayout(
     sidebarPanel(
-      h1(strong("Analysis Inputs")),
+      h2(strong("Analysis Inputs")),
       br(),
       br(),
       downloadButton("download", label = "Download plate-metadata.csv"),
@@ -117,7 +119,7 @@ ui <- fluidPage(
     
     
     mainPanel(
-      h1(strong("Instructions")),
+      h2(strong("Instructions")),
       br(),
       p("Follow the instructions below to run the FAST Data Analysis app:"),
       br(),
@@ -128,7 +130,7 @@ ui <- fluidPage(
       p("○ Indicate which wells contain senescent (e.g. \"SEN\") or non-senescent cells (e.g. \"CTL\") in the Condition plate template."),
       p("○ Indicate which are the background wells in the Condition plate template by adding \"_background\" in the well label (e.g. \"SEN_background\" and \"CTL_background\")."),
       p("○ Optional: add metadata regarding up to 2 additional variables if present in your experiment (e.g. different culturing conditions, or different concentrations of a drug treatment, etc.) in the 2 additional plate templates."),
-      p(span(strong("Note")), " If only 1 or no additional variables are present, the empty plate templates can be deleted from the plate-metadata.csv file"),
+      p(span(strong("Note")), " If only 1 or no additional variables are present, ", em("delete the empty plate templates"), "from the plate-metadata.csv file"),
       br(),
       p(strong(em("2) Select your Image Analyst output and the modified plate-metadata.csv files"))),
       p(span(strong("Note")), " to keep your files more organized, it is recommended to have both of these files in the same folder"),
@@ -373,6 +375,29 @@ The only variables that can be entered in the plate-template file are
       
       additional_variables_check <-  if (length(additional_variables) > 0) {TRUE} else {FALSE}
       multiple_additional_variables_check <- if (length(additional_variables) == 2) {TRUE} else {FALSE}
+      
+      # check that metadata and IA output data match (i.e. same # of wells)
+      
+      number_wells_IA_output <- tidy_data5$well %>% unique() %>% length()
+      number_wells_metadata <- plate_metadata$well %>% unique() %>% length()
+      
+      if (number_wells_IA_output != number_wells_metadata) {
+        beep(1)
+        validate(
+          paste0(
+          "ERROR:
+          
+          The Image Analyst output file (", input$Image_Analyst_output_file_name$name, ") and
+          the Plate Metadata file (", input$plate_template_name$name, ")
+          do not match
+          
+          Ensure that each well present in the Image Analyst output file has a corresponding label in the Plate Metadata file
+          
+          Number of wells present in the Image Analyst output file: ", number_wells_IA_output,"
+          Number of wells labelled in the Plate Metadata file: ", number_wells_metadata
+          )
+          )
+      }
       
       # add metadata info (conditions & serum) to table with observations (signal intensities for each cell)
       

@@ -15,8 +15,9 @@
 # install.packages("beepr")
 # install.packages("openxlsx")
 # install.packages("scales")
-# install.packages("rgl")
+# remotes::install_github("dmurdoch/rgl")
 # install.packages("htmlwidgets")
+
 
 library(shiny)
 runGitHub("FAST-Data-Analysis", "f-neri")
